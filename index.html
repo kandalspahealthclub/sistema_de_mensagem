@@ -3,37 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
-    <title>Mensageiro Pro - SMS Nativo com Cloud</title>
-    <!-- Firebase SDKs -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, collection, getDocs, addDoc, updateDoc, deleteDoc, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-        
-        const firebaseConfig = {
-            apiKey: "AIzaSyC2i4vZy7ViNyQAM6Fug6uxV42yWICco80",
-            authDomain: "mensageiro-pro-c8f1f.firebaseapp.com",
-            projectId: "mensageiro-pro-c8f1f",
-            storageBucket: "mensageiro-pro-c8f1f.firebasestorage.app",
-            messagingSenderId: "512429988910",
-            appId: "1:512429988910:web:d2e1015e39beafe32753bf",
-            measurementId: "G-J1LMH602PG"
-        };
-        
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-        
-        // Tornar disponível globalmente
-        window.db = db;
-        window.collection = collection;
-        window.getDocs = getDocs;
-        window.addDoc = addDoc;
-        window.updateDoc = updateDoc;
-        window.deleteDoc = deleteDoc;
-        window.doc = doc;
-        window.onSnapshot = onSnapshot;
+    <title>Mensageiro Pro - SMS Nativo (Realtime DB)</title>
+    <!-- Firebase SDKs (modular) -->
+    <script type="importmap">
+        {
+            "imports": {
+                "firebase/app": "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js",
+                "firebase/database": "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js"
+            }
+        }
     </script>
     <style>
-        /* === TODO O SEU CSS ORIGINAL (igual ao que você tinha) === */
+        /* === TODO O SEU CSS ORIGINAL (mantido) === */
         * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         :root { --primary: #25D366; --primary-dark: #128C7E; --secondary: #34B7F1; --danger: #dc3545; --warning: #ffc107; --success: #28a745; --dark: #1f2d3d; --light: #f8f9fa; --white: #ffffff; --border: #e2e8f0; }
         body { background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 8px; }
@@ -99,7 +80,7 @@
 <body>
 <div class="app-container">
     <div class="header">
-        <h1>📱 Mensageiro Pro Cloud</h1>
+        <h1>📱 Mensageiro Pro (Realtime DB)</h1>
         <div class="header-actions">
             <span class="header-stats" id="total-contacts">0 contatos</span>
             <button class="btn-logout" onclick="resetDatabase()">🔄 Resetar dados</button>
@@ -170,171 +151,89 @@
 <input type="file" id="json-uploader" accept=".json" style="display:none" onchange="handleJSONUpload(event)">
 
 <script type="module">
-    // Importações do Firebase já feitas no head, mas precisamos acessar os objetos
-    import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-    
-    const db = window.db;
-    let contacts = [];         // array local para renderização
+    import { initializeApp } from "firebase/app";
+    import { getDatabase, ref, onValue, push, set, remove, update } from "firebase/database";
+
+    // Configuração do Firebase (igual à sua)
+    const firebaseConfig = {
+        apiKey: "AIzaSyC2i4vZy7ViNyQAM6Fug6uxV42yWICco80",
+        authDomain: "mensageiro-pro-c8f1f.firebaseapp.com",
+        projectId: "mensageiro-pro-c8f1f",
+        storageBucket: "mensageiro-pro-c8f1f.firebasestorage.app",
+        messagingSenderId: "512429988910",
+        appId: "1:512429988910:web:d2e1015e39beafe32753bf",
+        measurementId: "G-J1LMH602PG",
+        databaseURL: "https://mensageiro-pro-c8f1f-default-rtdb.firebaseio.com/"  // URL do Realtime Database
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    console.log("Firebase Realtime Database inicializado");
+
+    let contacts = [];           // array local com { id, nome, telefone, observacoes }
     let selectedContacts = new Set();
-    let unsubscribe = null;
-    
-    // Inicializar listener em tempo real
-    function initFirestoreListener() {
-        const q = query(collection(db, "contatos"), orderBy("nome"));
-        unsubscribe = onSnapshot(q, (snapshot) => {
-            contacts = [];
-            snapshot.forEach(docSnap => {
-                contacts.push({ id: docSnap.id, ...docSnap.data() });
-            });
-            renderContacts(document.getElementById('search-contacts')?.value || '');
-            updateTotalContactsUI();
-            updateStatsUI();
-            // Limpar seleção de ids que não existem mais
-            const existingIds = new Set(contacts.map(c => c.id));
-            for(let id of selectedContacts) {
-                if(!existingIds.has(id)) selectedContacts.delete(id);
-            }
-            updateSelectedCountUI();
-        }, (error) => {
-            console.error("Erro no listener:", error);
-            showToast("Erro ao sincronizar com Firebase", "error");
-        });
-    }
-    
-    // Estatísticas (mensagens enviadas) - vamos guardar num documento separado
     let totalMessages = 0;
-    async function loadStats() {
-        try {
-            const statsDoc = await getDocs(collection(db, "estatisticas"));
-            if(!statsDoc.empty) {
-                const docRef = statsDoc.docs[0];
-                totalMessages = docRef.data().total_enviadas || 0;
-            } else {
-                await addDoc(collection(db, "estatisticas"), { total_enviadas: 0 });
-                totalMessages = 0;
-            }
-            document.getElementById('stat-mensagens').innerText = totalMessages;
-        } catch(e) { console.error(e); }
-    }
-    
-    async function incrementMessagesSent(amount) {
-        try {
-            const statsSnapshot = await getDocs(collection(db, "estatisticas"));
-            if(!statsSnapshot.empty) {
-                const docRef = statsSnapshot.docs[0];
-                const current = docRef.data().total_enviadas || 0;
-                await updateDoc(docRef.ref, { total_enviadas: current + amount });
-                totalMessages = current + amount;
-            } else {
-                await addDoc(collection(db, "estatisticas"), { total_enviadas: amount });
-                totalMessages = amount;
-            }
-            document.getElementById('stat-mensagens').innerText = totalMessages;
-        } catch(e) { console.error(e); }
-    }
-    
-    // CRUD com Firestore
-    async function addContact() {
-        const nome = document.getElementById('contact-name').value.trim();
-        let telefone = document.getElementById('contact-phone').value.trim().replace(/\D/g,'');
-        const obs = document.getElementById('contact-obs').value.trim();
-        if(!nome || !telefone) { showToast('Nome e telefone obrigatórios', 'error'); return; }
-        try {
-            await addDoc(collection(db, "contatos"), {
-                nome: nome,
-                telefone: telefone,
-                observacoes: obs || ""
+
+    // Referências no Realtime Database
+    const contactsRef = ref(db, 'contatos');
+    const statsRef = ref(db, 'estatisticas/total_mensagens');
+
+    // --- Listener em tempo real para contactos ---
+    onValue(contactsRef, (snapshot) => {
+        const data = snapshot.val();
+        contacts = [];
+        if (data) {
+            Object.keys(data).forEach(key => {
+                contacts.push({
+                    id: key,
+                    nome: data[key].nome || '',
+                    telefone: data[key].telefone || '',
+                    observacoes: data[key].observacoes || ''
+                });
             });
-            hideAddContactModal();
-            showToast('✅ Contato adicionado na nuvem');
-            document.getElementById('contact-name').value = '';
-            document.getElementById('contact-phone').value = '';
-            document.getElementById('contact-obs').value = '';
-        } catch(e) { showToast('Erro ao adicionar', 'error'); }
-    }
-    
-    async function updateContact() {
-        const id = document.getElementById('edit-contact-id').value;
-        const nome = document.getElementById('edit-contact-name').value.trim();
-        let telefone = document.getElementById('edit-contact-phone').value.trim().replace(/\D/g,'');
-        const obs = document.getElementById('edit-contact-obs').value.trim();
-        if(!nome || !telefone) { showToast('Nome e telefone obrigatórios', 'error'); return; }
-        try {
-            const docRef = doc(db, "contatos", id);
-            await updateDoc(docRef, { nome, telefone, observacoes: obs || "" });
-            hideEditContactModal();
-            showToast('Atualizado');
-        } catch(e) { showToast('Erro ao atualizar', 'error'); }
-    }
-    
-    async function deleteContact(id) {
-        if(!confirm('Remover contato permanentemente?')) return;
-        try {
-            await deleteDoc(doc(db, "contatos", id));
-            selectedContacts.delete(id);
-            showToast('Removido');
-        } catch(e) { showToast('Erro ao remover', 'error'); }
-    }
-    
-    // Importar JSON ignorando "data_inicio"
-    async function handleJSONUpload(event) {
-        const file = event.target.files[0];
-        if(!file) return;
-        const reader = new FileReader();
-        reader.onload = async function(e) {
-            try {
-                const jsonData = JSON.parse(e.target.result);
-                let list = Array.isArray(jsonData) ? jsonData : (jsonData.contatos ? jsonData.contatos : [jsonData]);
-                if(!Array.isArray(list)) list = [list];
-                let imported = 0;
-                for(let item of list) {
-                    let nome = item.nome || item.name || 'Sem nome';
-                    let telefoneRaw = item.contacto || item.telefone || item.phone || '';
-                    telefoneRaw = telefoneRaw.toString().replace(/\D/g, '');
-                    if(!telefoneRaw) continue;
-                    let obs = item.observacoes || item.obs || '';
-                    await addDoc(collection(db, "contatos"), { nome: nome.trim(), telefone: telefoneRaw, observacoes: obs });
-                    imported++;
-                }
-                showToast(`✅ Importados ${imported} contatos`, 'success');
-            } catch(err) { showToast('JSON inválido', 'error'); }
-            event.target.value = '';
-        };
-        reader.readAsText(file);
-    }
-    
-    async function resetDatabase() {
-        if(!confirm('⚠️ Isso vai APAGAR TODOS OS CONTATOS e estatísticas na nuvem. Continuar?')) return;
-        // Deletar todos contatos
-        const snapshot = await getDocs(collection(db, "contatos"));
-        for(const docSnap of snapshot.docs) {
-            await deleteDoc(doc(db, "contatos", docSnap.id));
         }
-        // Resetar estatísticas
-        const statsSnap = await getDocs(collection(db, "estatisticas"));
-        if(!statsSnap.empty) {
-            await updateDoc(statsSnap.docs[0].ref, { total_enviadas: 0 });
-        } else {
-            await addDoc(collection(db, "estatisticas"), { total_enviadas: 0 });
+        // Ordenar por nome
+        contacts.sort((a,b) => a.nome.localeCompare(b.nome));
+        renderContacts(document.getElementById('search-contacts')?.value || '');
+        updateTotalContactsUI();
+        updateStatsUI();
+        // Limpar seleções que já não existem
+        const existingIds = new Set(contacts.map(c => c.id));
+        for(let id of selectedContacts) {
+            if(!existingIds.has(id)) selectedContacts.delete(id);
         }
-        selectedContacts.clear();
-        showToast('Dados reiniciados na nuvem');
-        loadStats();
-    }
-    
-    // Funções auxiliares de UI (mesmo comportamento)
+        updateSelectedCountUI();
+    }, (error) => {
+        console.error("Erro no listener:", error);
+        showToast("Erro ao carregar contactos: " + error.message, "error");
+    });
+
+    // --- Estatísticas: total de mensagens enviadas ---
+    onValue(statsRef, (snapshot) => {
+        totalMessages = snapshot.val() || 0;
+        document.getElementById('stat-mensagens').innerText = totalMessages;
+    });
+
+    // --- Funções auxiliares ---
     function renderContacts(filterText = '') {
         const container = document.getElementById('contacts-list');
         if(!container) return;
-        const filtered = contacts.filter(c => c.nome.toLowerCase().includes(filterText.toLowerCase()) || c.telefone.includes(filterText) || (c.observacoes && c.observacoes.toLowerCase().includes(filterText.toLowerCase())));
-        if(filtered.length === 0) { container.innerHTML = '<div class="empty-state"><i>📭</i><p>Nenhum contato</p></div>'; return; }
+        const filtered = contacts.filter(c => 
+            c.nome.toLowerCase().includes(filterText.toLowerCase()) || 
+            c.telefone.includes(filterText) ||
+            (c.observacoes && c.observacoes.toLowerCase().includes(filterText.toLowerCase()))
+        );
+        if(filtered.length === 0) {
+            container.innerHTML = '<div class="empty-state"><i>📭</i><p>Nenhum contato</p></div>';
+            return;
+        }
         container.innerHTML = '';
         filtered.forEach(contact => {
             const isSelected = selectedContacts.has(contact.id);
             const div = document.createElement('div');
             div.className = `contact-item ${isSelected ? 'selected' : ''}`;
             div.innerHTML = `
-                <div class="contact-avatar" data-id="${contact.id}">${contact.nome.charAt(0)}</div>
+                <div class="contact-avatar" data-id="${contact.id}">${escapeHtml(contact.nome.charAt(0))}</div>
                 <div class="contact-info" data-id="${contact.id}">
                     <div class="contact-name">${escapeHtml(contact.nome)} ${contact.observacoes ? '📌' : ''}</div>
                     <div class="contact-phone">📱 ${formatPhone(contact.telefone)}</div>
@@ -355,39 +254,151 @@
         });
         updateSelectedCountUI();
     }
-    
-    function toggleContact(id) { if(selectedContacts.has(id)) selectedContacts.delete(id); else selectedContacts.add(id); renderContacts(document.getElementById('search-contacts')?.value || ''); }
-    function clearSelection() { selectedContacts.clear(); renderContacts(document.getElementById('search-contacts')?.value || ''); showToast('Seleção limpa'); }
-    function updateSelectedCountUI() { document.getElementById('selected-count').innerText = selectedContacts.size === 0 ? '0 selecionados' : `${selectedContacts.size} selecionado${selectedContacts.size !==1 ? 's' : ''}`; }
-    function filterContacts() { renderContacts(document.getElementById('search-contacts').value); }
-    function formatPhone(p) { let s = p.replace(/\D/g,''); if(s.length===11) return `(${s.slice(0,2)}) ${s.slice(2,7)}-${s.slice(7)}`; if(s.length===10) return `(${s.slice(0,2)}) ${s.slice(2,6)}-${s.slice(6)}`; return p; }
-    function escapeHtml(str) { return str.replace(/[&<>]/g, function(m){if(m==='&') return '&amp;'; if(m==='<') return '&lt;'; if(m==='>') return '&gt;'; return m;}); }
-    function showToast(msg, type='success') { const t = document.getElementById('toast'); t.innerText = msg; t.className = `toast show ${type}`; setTimeout(()=> t.classList.remove('show'), 2800); }
-    function updateTotalContactsUI() { document.getElementById('total-contacts').innerText = `${contacts.length} contato${contacts.length !== 1 ? 's' : ''}`; document.getElementById('stat-contatos').innerText = contacts.length; }
-    function updateStatsUI() { document.getElementById('stat-contatos').innerText = contacts.length; }
-    
-    function showEditContactModal(id) {
-        const c = contacts.find(c => c.id === id);
-        if(c) {
-            document.getElementById('edit-contact-id').value = id;
-            document.getElementById('edit-contact-name').value = c.nome;
-            document.getElementById('edit-contact-phone').value = c.telefone;
-            document.getElementById('edit-contact-obs').value = c.observacoes || '';
-            document.getElementById('edit-contact-modal').classList.add('active');
-        }
+
+    function toggleContact(id) {
+        if(selectedContacts.has(id)) selectedContacts.delete(id);
+        else selectedContacts.add(id);
+        renderContacts(document.getElementById('search-contacts')?.value || '');
     }
-    function hideEditContactModal() { document.getElementById('edit-contact-modal').classList.remove('active'); }
-    function showAddContactModal() { document.getElementById('contact-modal').classList.add('active'); }
-    function hideAddContactModal() { document.getElementById('contact-modal').classList.remove('active'); }
-    
-    function insertTemplate(txt) { document.getElementById('message-text').value = txt; updateCharCount(); }
-    function updateCharCount() { const len = document.getElementById('message-text').value.length; document.getElementById('char-counter').innerText = `${len} caracteres`; }
+
+    function clearSelection() {
+        selectedContacts.clear();
+        renderContacts(document.getElementById('search-contacts')?.value || '');
+        showToast('Seleção limpa');
+    }
+
+    function updateSelectedCountUI() {
+        const count = selectedContacts.size;
+        document.getElementById('selected-count').innerText = count === 0 ? '0 selecionados' : `${count} selecionado${count !== 1 ? 's' : ''}`;
+    }
+
+    function filterContacts() { renderContacts(document.getElementById('search-contacts').value); }
+
+    function formatPhone(p) {
+        let s = p.replace(/\D/g,'');
+        if(s.length===11) return `(${s.slice(0,2)}) ${s.slice(2,7)}-${s.slice(7)}`;
+        if(s.length===10) return `(${s.slice(0,2)}) ${s.slice(2,6)}-${s.slice(6)}`;
+        return p;
+    }
+
+    function escapeHtml(str) { return str.replace(/[&<>]/g, function(m){ if(m==='&') return '&amp;'; if(m==='<') return '&lt;'; if(m==='>') return '&gt;'; return m;}); }
+
+    function showToast(msg, type='success') {
+        const t = document.getElementById('toast');
+        t.innerText = msg;
+        t.className = `toast show ${type}`;
+        setTimeout(()=> t.classList.remove('show'), 2800);
+    }
+
+    function updateTotalContactsUI() {
+        document.getElementById('total-contacts').innerText = `${contacts.length} contato${contacts.length !== 1 ? 's' : ''}`;
+        document.getElementById('stat-contatos').innerText = contacts.length;
+    }
+    function updateStatsUI() { document.getElementById('stat-contatos').innerText = contacts.length; }
+
+    // --- CRUD com Realtime Database ---
+    async function addContact() {
+        const nome = document.getElementById('contact-name').value.trim();
+        let telefone = document.getElementById('contact-phone').value.trim().replace(/\D/g,'');
+        const obs = document.getElementById('contact-obs').value.trim();
+        if(!nome || !telefone) { showToast('Nome e telefone obrigatórios', 'error'); return; }
+        try {
+            const newContactRef = push(contactsRef);
+            await set(newContactRef, {
+                nome: nome,
+                telefone: telefone,
+                observacoes: obs || ""
+            });
+            hideAddContactModal();
+            showToast('✅ Contato adicionado');
+            document.getElementById('contact-name').value = '';
+            document.getElementById('contact-phone').value = '';
+            document.getElementById('contact-obs').value = '';
+        } catch(e) { showToast('Erro ao adicionar: ' + e.message, 'error'); }
+    }
+
+    async function updateContact() {
+        const id = document.getElementById('edit-contact-id').value;
+        const nome = document.getElementById('edit-contact-name').value.trim();
+        let telefone = document.getElementById('edit-contact-phone').value.trim().replace(/\D/g,'');
+        const obs = document.getElementById('edit-contact-obs').value.trim();
+        if(!nome || !telefone) { showToast('Nome e telefone obrigatórios', 'error'); return; }
+        try {
+            const contactRef = ref(db, `contatos/${id}`);
+            await update(contactRef, { nome, telefone, observacoes: obs || "" });
+            hideEditContactModal();
+            showToast('Atualizado');
+        } catch(e) { showToast('Erro ao atualizar: ' + e.message, 'error'); }
+    }
+
+    async function deleteContact(id) {
+        if(!confirm('Remover contato permanentemente?')) return;
+        try {
+            const contactRef = ref(db, `contatos/${id}`);
+            await remove(contactRef);
+            selectedContacts.delete(id);
+            showToast('Removido');
+        } catch(e) { showToast('Erro ao remover: ' + e.message, 'error'); }
+    }
+
+    async function incrementMessagesSent(amount) {
+        const current = totalMessages;
+        await set(statsRef, current + amount);
+    }
+
+    async function resetDatabase() {
+        if(!confirm('⚠️ Isso vai APAGAR TODOS OS CONTATOS e estatísticas na nuvem. Continuar?')) return;
+        try {
+            await set(contactsRef, null);
+            await set(statsRef, 0);
+            selectedContacts.clear();
+            showToast('Dados reiniciados na nuvem');
+        } catch(e) { showToast('Erro ao resetar: ' + e.message, 'error'); }
+    }
+
+    // --- Importar JSON ignorando "data_inicio" ---
+    async function handleJSONUpload(event) {
+        const file = event.target.files[0];
+        if(!file) return;
+        const reader = new FileReader();
+        reader.onload = async function(e) {
+            try {
+                const jsonData = JSON.parse(e.target.result);
+                let list = Array.isArray(jsonData) ? jsonData : (jsonData.contatos ? jsonData.contatos : [jsonData]);
+                if(!Array.isArray(list)) list = [list];
+                let imported = 0;
+                for(let item of list) {
+                    let nome = item.nome || item.name || 'Sem nome';
+                    let telefoneRaw = item.contacto || item.telefone || item.phone || '';
+                    telefoneRaw = telefoneRaw.toString().replace(/\D/g, '');
+                    if(!telefoneRaw) continue;
+                    let obs = item.observacoes || item.obs || '';
+                    const newRef = push(contactsRef);
+                    await set(newRef, { nome: nome.trim(), telefone: telefoneRaw, observacoes: obs });
+                    imported++;
+                }
+                showToast(`✅ Importados ${imported} contatos`, 'success');
+            } catch(err) { showToast('JSON inválido', 'error'); }
+            event.target.value = '';
+        };
+        reader.readAsText(file);
+    }
+
+    // --- Templates e envio SMS ---
+    function insertTemplate(txt) {
+        document.getElementById('message-text').value = txt;
+        updateCharCount();
+    }
+    function updateCharCount() {
+        const len = document.getElementById('message-text').value.length;
+        document.getElementById('char-counter').innerText = `${len} caracteres`;
+    }
     document.getElementById('message-text')?.addEventListener('input', updateCharCount);
-    
+
     function processMessageForContact(template, contact) {
         return template.replace(/{nome}/g, contact.nome).replace(/{telefone}/g, contact.telefone).replace(/{observacoes}/g, contact.observacoes || '');
     }
-    
+
     async function sendMessagesNative() {
         let rawMessage = document.getElementById('message-text').value;
         if(!rawMessage.trim()) { showToast('Digite uma mensagem', 'error'); return; }
@@ -407,16 +418,25 @@
         await incrementMessagesSent(count);
         showToast(`📨 ${count} SMS abertos no app nativo`, 'success');
     }
-    
+
     function triggerFileUpload() { document.getElementById('json-uploader').click(); }
-    
-    // Iniciar tudo
-    initFirestoreListener();
-    loadStats();
-    
-    // Expor funções globais
-    window.showAddContactModal = showAddContactModal;
-    window.hideAddContactModal = hideAddContactModal;
+
+    // --- Modais ---
+    function showAddContactModal() { document.getElementById('contact-modal').classList.add('active'); }
+    function hideAddContactModal() { document.getElementById('contact-modal').classList.remove('active'); }
+    function showEditContactModal(id) {
+        const c = contacts.find(c => c.id === id);
+        if(c) {
+            document.getElementById('edit-contact-id').value = id;
+            document.getElementById('edit-contact-name').value = c.nome;
+            document.getElementById('edit-contact-phone').value = c.telefone;
+            document.getElementById('edit-contact-obs').value = c.observacoes || '';
+            document.getElementById('edit-contact-modal').classList.add('active');
+        }
+    }
+    function hideEditContactModal() { document.getElementById('edit-contact-modal').classList.remove('active'); }
+
+    // Expor funções globalmente (para os botões inline)
     window.addContact = addContact;
     window.updateContact = updateContact;
     window.deleteContact = deleteContact;
@@ -428,8 +448,11 @@
     window.triggerFileUpload = triggerFileUpload;
     window.handleJSONUpload = handleJSONUpload;
     window.resetDatabase = resetDatabase;
+    window.showAddContactModal = showAddContactModal;
+    window.hideAddContactModal = hideAddContactModal;
     window.showEditContactModal = showEditContactModal;
     window.hideEditContactModal = hideEditContactModal;
+    window.updateCharCount = updateCharCount;
 </script>
 </body>
 </html>
