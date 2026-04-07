@@ -1,0 +1,875 @@
+﻿<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
+    <title>Mensageiro Pro - SMS Nativo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        :root {
+            --primary: #25D366;
+            --primary-dark: #128C7E;
+            --secondary: #34B7F1;
+            --danger: #dc3545;
+            --warning: #ffc107;
+            --success: #28a745;
+            --dark: #1f2d3d;
+            --light: #f8f9fa;
+            --white: #ffffff;
+            --border: #e2e8f0;
+        }
+
+        body {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 8px;
+        }
+
+        .app-container {
+            width: 100%;
+            max-width: 1200px;
+            height: 96vh;
+            background: var(--white);
+            border-radius: 28px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header */
+        .header {
+            background: var(--primary);
+            color: var(--white);
+            padding: 14px 18px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .header h1 {
+            font-size: 1.35rem;
+            font-weight: 600;
+            letter-spacing: -0.3px;
+        }
+
+        .header-stats {
+            background: rgba(255,255,255,0.2);
+            padding: 6px 14px;
+            border-radius: 40px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .btn-logout {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: none;
+            padding: 6px 14px;
+            border-radius: 40px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            font-weight: 500;
+            transition: 0.2s;
+        }
+
+        /* Main layout */
+        .main-content {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+            padding: 12px;
+            gap: 12px;
+        }
+
+        /* Left Panel */
+        .contacts-panel {
+            width: 340px;
+            background: var(--light);
+            border-radius: 20px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            border: 1px solid var(--border);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+        }
+
+        .panel-header {
+            padding: 14px;
+            background: var(--white);
+            border-bottom: 2px solid var(--primary);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .panel-header h3 {
+            font-size: 1rem;
+            color: var(--dark);
+        }
+
+        .btn-icon-group {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-icon {
+            background: var(--primary);
+            color: white;
+            border: none;
+            width: 38px;
+            height: 38px;
+            border-radius: 30px;
+            font-size: 1.3rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: 0.2s;
+            font-weight: bold;
+        }
+
+        .btn-icon.upload {
+            background: #2c3e66;
+        }
+
+        .btn-icon:hover {
+            transform: scale(0.96);
+            opacity: 0.9;
+        }
+
+        .search-box {
+            padding: 10px;
+            background: white;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid var(--border);
+            border-radius: 30px;
+            font-size: 0.9rem;
+            background: var(--light);
+        }
+
+        .contacts-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 8px;
+        }
+
+        .contact-item {
+            background: var(--white);
+            border-radius: 16px;
+            padding: 12px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+
+        .contact-item:active {
+            transform: scale(0.99);
+            background: #f1f5f9;
+        }
+
+        .contact-item.selected {
+            background: #e8f5e9;
+            border: 1.5px solid var(--primary);
+        }
+
+        .contact-avatar {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 1.2rem;
+            flex-shrink: 0;
+        }
+
+        .contact-info {
+            flex: 1;
+        }
+
+        .contact-name {
+            font-weight: 700;
+            color: var(--dark);
+            margin-bottom: 4px;
+            font-size: 0.95rem;
+        }
+
+        .contact-phone {
+            font-size: 0.75rem;
+            color: #5b6e8c;
+            margin-bottom: 4px;
+        }
+
+        .contact-obs {
+            font-size: 0.7rem;
+            color: #7f8c8d;
+            font-style: italic;
+        }
+
+        .contact-actions {
+            display: flex;
+            gap: 6px;
+            margin-top: 6px;
+        }
+
+        .btn-edit, .btn-delete {
+            padding: 5px 12px;
+            border: none;
+            border-radius: 30px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .btn-edit { background: var(--secondary); color: white; }
+        .btn-delete { background: var(--danger); color: white; }
+
+        .contact-checkbox {
+            width: 22px;
+            height: 22px;
+            accent-color: var(--primary);
+            flex-shrink: 0;
+        }
+
+        /* Right Panel */
+        .message-panel {
+            flex: 1;
+            background: var(--light);
+            border-radius: 20px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+
+        .message-header {
+            padding: 14px;
+            background: white;
+            border-bottom: 2px solid var(--primary);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .selected-count {
+            background: var(--primary);
+            color: white;
+            padding: 6px 14px;
+            border-radius: 30px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .message-composer {
+            flex: 1;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .stats-panel {
+            background: white;
+            border-radius: 20px;
+            padding: 12px;
+            border-left: 4px solid var(--primary);
+        }
+
+        .stats-grid {
+            display: flex;
+            gap: 20px;
+            justify-content: space-around;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: var(--primary);
+        }
+
+        .template-selector {
+            background: white;
+            padding: 12px;
+            border-radius: 20px;
+        }
+
+        .template-buttons {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 8px;
+        }
+
+        .btn-template {
+            background: #f1f5f9;
+            border: none;
+            padding: 8px 14px;
+            border-radius: 40px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .btn-template:active {
+            background: var(--primary);
+            color: white;
+        }
+
+        .variables-info {
+            background: #e6f7ff;
+            padding: 10px;
+            border-radius: 16px;
+            font-size: 0.7rem;
+            color: #0066cc;
+        }
+
+        .message-input textarea {
+            width: 100%;
+            min-height: 130px;
+            padding: 14px;
+            border: 1.5px solid var(--border);
+            border-radius: 20px;
+            font-size: 0.9rem;
+            resize: vertical;
+            font-family: inherit;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 12px;
+            margin-top: 6px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 14px;
+            border: none;
+            border-radius: 60px;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: 0.2s;
+            text-align: center;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+            box-shadow: 0 2px 8px rgba(37,211,102,0.3);
+        }
+
+        .btn-secondary {
+            background: var(--secondary);
+            color: white;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.6);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            backdrop-filter: blur(3px);
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 32px;
+            padding: 24px;
+            width: 90%;
+            max-width: 420px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .form-group {
+            margin-bottom: 18px;
+        }
+
+        .form-group label {
+            font-weight: 600;
+            margin-bottom: 6px;
+            display: block;
+        }
+
+        .form-group input, .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1.5px solid var(--border);
+            border-radius: 16px;
+            font-size: 0.9rem;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 25px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--dark);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 60px;
+            font-size: 0.85rem;
+            z-index: 1100;
+            display: none;
+            white-space: nowrap;
+            max-width: 90vw;
+            white-space: normal;
+            text-align: center;
+        }
+
+        .toast.show { display: block; }
+        .toast.success { background: var(--success); }
+        .toast.error { background: var(--danger); }
+
+        @media (max-width: 700px) {
+            .main-content {
+                flex-direction: column;
+                padding: 8px;
+            }
+            .contacts-panel {
+                width: 100%;
+                height: 42%;
+            }
+            .message-panel {
+                height: 58%;
+            }
+            .btn-icon {
+                width: 42px;
+                height: 42px;
+            }
+            .action-buttons .btn {
+                padding: 12px;
+            }
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #94a3b8;
+        }
+        .file-input-hidden {
+            display: none;
+        }
+        .badge-warning {
+            background: #ffedd5;
+            color: #b45309;
+            font-size: 0.7rem;
+            padding: 5px 10px;
+            border-radius: 30px;
+            display: inline-block;
+        }
+    </style>
+</head>
+<body>
+<div class="app-container">
+    <div class="header">
+        <h1>📱 Mensageiro Pro</h1>
+        <div class="header-actions">
+            <span class="header-stats" id="total-contacts">0 contatos</span>
+            <button class="btn-logout" onclick="resetDemo()">🔄 Reiniciar demo</button>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <!-- LEFT: CONTATOS -->
+        <div class="contacts-panel">
+            <div class="panel-header">
+                <h3>📇 Lista de Contatos</h3>
+                <div class="btn-icon-group">
+                    <button class="btn-icon" onclick="showAddContactModal()" title="Adicionar manual">+</button>
+                    <button class="btn-icon upload" onclick="triggerFileUpload()" title="Importar JSON">📂</button>
+                </div>
+            </div>
+            <div class="search-box">
+                <input type="text" id="search-contacts" placeholder="🔍 Buscar por nome, telefone..." oninput="filterContacts()">
+            </div>
+            <div class="contacts-list" id="contacts-list"></div>
+        </div>
+
+        <!-- RIGHT: MENSAGEM E SMS NATIVO -->
+        <div class="message-panel">
+            <div class="message-header">
+                <h3>✏️ Compor Mensagem</h3>
+                <div class="selected-count" id="selected-count">0 selecionados</div>
+            </div>
+            <div class="message-composer">
+                <div class="stats-panel">
+                    <div class="stats-grid">
+                        <div class="stat-item"><div class="stat-value" id="stat-contatos">0</div><div>Contatos</div></div>
+                        <div class="stat-item"><div class="stat-value" id="stat-mensagens">0</div><div>Mensagens enviadas</div></div>
+                    </div>
+                </div>
+
+                <div class="template-selector">
+                    <div>📋 Templates rápidos:</div>
+                    <div class="template-buttons">
+                        <button class="btn-template" onclick="insertTemplate('Olá {nome}, tudo bem?')">Saudação</button>
+                        <button class="btn-template" onclick="insertTemplate('{nome}, temos uma oferta especial!')">Promoção</button>
+                        <button class="btn-template" onclick="insertTemplate('Lembrete: {nome}, confirme sua presença.')">Lembrete</button>
+                        <button class="btn-template" onclick="insertTemplate('Feliz aniversário, {nome}! 🎉')">Aniversário</button>
+                    </div>
+                </div>
+
+                <div class="variables-info">
+                    💡 <strong>Variáveis:</strong> <code>{nome}</code> <code>{telefone}</code> <code>{observacoes}</code><br>
+                    ⚠️ <strong>SMS nativo:</strong> a mensagem será enviada IGUAL para todos os destinatários (os placeholders serão substituídos pelo nome de cada um apenas no texto final, mas o app de SMS abrirá com a mensagem personalizada por contato? Infelizmente, o sistema nativo não permite múltiplas personalizações em um único envio. Por isso, <strong>para cada contato será aberto um SMS separado</strong> (automático). Toque em enviar e confirme.
+                </div>
+
+                <div class="message-input">
+                    <textarea id="message-text" placeholder="Digite sua mensagem... use {nome}, {telefone}, {observacoes}"></textarea>
+                    <div class="char-counter" id="char-counter">0 caracteres</div>
+                </div>
+
+                <div class="action-buttons">
+                    <button class="btn btn-primary" onclick="sendMessagesNative()">
+                        📤 Enviar SMS (Nativo)
+                    </button>
+                    <button class="btn btn-secondary" onclick="clearSelection()">
+                        🔄 Limpar Seleção
+                    </button>
+                </div>
+                <div class="badge-warning" style="text-align: center; margin-top: 6px;">
+                    * Cada contato abrirá uma conversa nativa de SMS automaticamente
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modais -->
+    <div class="modal" id="contact-modal"><div class="modal-content"><div class="modal-header"><h3>➕ Novo Contato</h3><span class="modal-close" onclick="hideAddContactModal()">&times;</span></div>
+        <div class="form-group"><label>Nome</label><input type="text" id="contact-name" placeholder="Ex: João Silva"></div>
+        <div class="form-group"><label>Telefone (com DDD)</label><input type="tel" id="contact-phone" placeholder="11999999999"></div>
+        <div class="form-group"><label>Observações</label><textarea id="contact-obs"></textarea></div>
+        <div style="display:flex; gap:10px"><button class="btn btn-primary" onclick="addContact()">Salvar</button><button class="btn btn-secondary" onclick="hideAddContactModal()">Cancelar</button></div>
+    </div></div>
+
+    <div class="modal" id="edit-contact-modal"><div class="modal-content"><div class="modal-header"><h3>✏️ Editar Contato</h3><span class="modal-close" onclick="hideEditContactModal()">&times;</span></div>
+        <input type="hidden" id="edit-contact-id"><div class="form-group"><label>Nome</label><input type="text" id="edit-contact-name"></div>
+        <div class="form-group"><label>Telefone</label><input type="tel" id="edit-contact-phone"></div>
+        <div class="form-group"><label>Observações</label><textarea id="edit-contact-obs"></textarea></div>
+        <div style="display:flex; gap:10px"><button class="btn btn-primary" onclick="updateContact()">Atualizar</button><button class="btn btn-secondary" onclick="hideEditContactModal()">Cancelar</button></div>
+    </div></div>
+
+    <div class="toast" id="toast"></div>
+    <input type="file" id="json-uploader" accept=".json" style="display:none" onchange="handleJSONUpload(event)">
+</div>
+
+<script>
+    // ---------- DADOS LOCAIS (sem backend real, persistência localStorage) ----------
+    let contacts = [];
+    let selectedContacts = new Set();
+    let editingContactId = null;
+    let messageStats = { total_enviadas: 0 };
+
+    // Carregar dados salvos
+    function loadFromStorage() {
+        const stored = localStorage.getItem('mensageiro_contacts');
+        if(stored) contacts = JSON.parse(stored);
+        else {
+            // Contatos de exemplo
+            contacts = [
+                { id: 1, nome: "Ana Oliveira", telefone: "11988887777", observacoes: "Cliente VIP" },
+                { id: 2, nome: "Carlos Souza", telefone: "21977776666", observacoes: "Interesse em produto X" },
+                { id: 3, nome: "Mariana Lima", telefone: "31966665555", observacoes: "" }
+            ];
+        }
+        const statsStored = localStorage.getItem('mensageiro_stats');
+        if(statsStored) messageStats = JSON.parse(statsStored);
+        else messageStats = { total_enviadas: 0 };
+        updateTotalContactsUI();
+        renderContacts();
+        updateStatsUI();
+    }
+
+    function saveContacts() {
+        localStorage.setItem('mensageiro_contacts', JSON.stringify(contacts));
+    }
+    function saveStats() {
+        localStorage.setItem('mensageiro_stats', JSON.stringify(messageStats));
+    }
+
+    function updateTotalContactsUI() {
+        document.getElementById('total-contacts').innerText = `${contacts.length} contato${contacts.length !== 1 ? 's' : ''}`;
+    }
+
+    function updateStatsUI() {
+        document.getElementById('stat-contatos').innerText = contacts.length;
+        document.getElementById('stat-mensagens').innerText = messageStats.total_enviadas;
+    }
+
+    // renderização
+    function renderContacts(filterText = '') {
+        const container = document.getElementById('contacts-list');
+        if(!container) return;
+        const filtered = contacts.filter(c => c.nome.toLowerCase().includes(filterText.toLowerCase()) || c.telefone.includes(filterText) || (c.observacoes && c.observacoes.toLowerCase().includes(filterText.toLowerCase())));
+        if(filtered.length === 0) {
+            container.innerHTML = '<div class="empty-state"><i>📭</i><p>Nenhum contato</p></div>';
+            return;
+        }
+        container.innerHTML = '';
+        filtered.forEach(contact => {
+            const isSelected = selectedContacts.has(contact.id);
+            const div = document.createElement('div');
+            div.className = `contact-item ${isSelected ? 'selected' : ''}`;
+            div.innerHTML = `
+                <div class="contact-avatar" data-id="${contact.id}">${contact.nome.charAt(0)}</div>
+                <div class="contact-info" data-id="${contact.id}">
+                    <div class="contact-name">${escapeHtml(contact.nome)} ${contact.observacoes ? '📌' : ''}</div>
+                    <div class="contact-phone">📱 ${formatPhone(contact.telefone)}</div>
+                    ${contact.observacoes ? `<div class="contact-obs">📝 ${escapeHtml(contact.observacoes)}</div>` : ''}
+                    <div class="contact-actions">
+                        <button class="btn-edit" data-id="${contact.id}">✏️ Editar</button>
+                        <button class="btn-delete" data-id="${contact.id}">🗑️ Remover</button>
+                    </div>
+                </div>
+                <input type="checkbox" class="contact-checkbox" data-id="${contact.id}" ${isSelected ? 'checked' : ''}>
+            `;
+            // Eventos
+            div.querySelector('.contact-avatar').addEventListener('click', (e) => { e.stopPropagation(); toggleContact(contact.id); });
+            div.querySelector('.contact-info').addEventListener('click', (e) => { if(!e.target.classList.contains('btn-edit') && !e.target.classList.contains('btn-delete')) toggleContact(contact.id); });
+            div.querySelector('.btn-edit').addEventListener('click', (e) => { e.stopPropagation(); showEditContactModal(contact.id); });
+            div.querySelector('.btn-delete').addEventListener('click', (e) => { e.stopPropagation(); deleteContact(contact.id); });
+            div.querySelector('.contact-checkbox').addEventListener('change', (e) => { e.stopPropagation(); toggleContact(contact.id); });
+            container.appendChild(div);
+        });
+        updateSelectedCountUI();
+    }
+
+    function escapeHtml(str) { return str.replace(/[&<>]/g, function(m){if(m==='&') return '&amp;'; if(m==='<') return '&lt;'; if(m==='>') return '&gt;'; return m;});}
+    function formatPhone(p) { let s = p.replace(/\D/g,''); if(s.length===11) return `(${s.slice(0,2)}) ${s.slice(2,7)}-${s.slice(7)}`; if(s.length===10) return `(${s.slice(0,2)}) ${s.slice(2,6)}-${s.slice(6)}`; return p; }
+    function toggleContact(id) { if(selectedContacts.has(id)) selectedContacts.delete(id); else selectedContacts.add(id); renderContacts(document.getElementById('search-contacts')?.value || ''); }
+    function clearSelection() { selectedContacts.clear(); renderContacts(document.getElementById('search-contacts')?.value || ''); showToast('Seleção limpa', 'success'); }
+    function updateSelectedCountUI() { document.getElementById('selected-count').innerText = selectedContacts.size === 0 ? '0 selecionados' : `${selectedContacts.size} selecionado${selectedContacts.size !==1 ? 's' : ''}`; }
+    function filterContacts() { renderContacts(document.getElementById('search-contacts').value); }
+
+    // CRUD
+    async function addContact() {
+        const nome = document.getElementById('contact-name').value.trim();
+        const telefone = document.getElementById('contact-phone').value.trim().replace(/\D/g,'');
+        const obs = document.getElementById('contact-obs').value.trim();
+        if(!nome || !telefone) { showToast('Nome e telefone obrigatórios', 'error'); return; }
+        const newId = contacts.length ? Math.max(...contacts.map(c=>c.id)) + 1 : 1;
+        const novo = { id: newId, nome, telefone, observacoes: obs };
+        contacts.push(novo);
+        saveContacts();
+        renderContacts(document.getElementById('search-contacts')?.value || '');
+        updateTotalContactsUI();
+        updateStatsUI();
+        hideAddContactModal();
+        showToast('✅ Contato adicionado');
+    }
+
+    function showEditContactModal(id) {
+        const c = contacts.find(c => c.id === id);
+        if(c) {
+            editingContactId = id;
+            document.getElementById('edit-contact-name').value = c.nome;
+            document.getElementById('edit-contact-phone').value = c.telefone;
+            document.getElementById('edit-contact-obs').value = c.observacoes || '';
+            document.getElementById('edit-contact-modal').classList.add('active');
+        }
+    }
+    function hideEditContactModal() { document.getElementById('edit-contact-modal').classList.remove('active'); editingContactId = null; }
+    async function updateContact() {
+        const nome = document.getElementById('edit-contact-name').value.trim();
+        const telefone = document.getElementById('edit-contact-phone').value.trim().replace(/\D/g,'');
+        const obs = document.getElementById('edit-contact-obs').value.trim();
+        if(!nome || !telefone) { showToast('Nome e telefone obrigatórios', 'error'); return; }
+        const idx = contacts.findIndex(c=>c.id === editingContactId);
+        if(idx !== -1) {
+            contacts[idx] = { ...contacts[idx], nome, telefone, observacoes: obs };
+            saveContacts();
+            renderContacts(document.getElementById('search-contacts')?.value || '');
+            hideEditContactModal();
+            showToast('Atualizado');
+        }
+    }
+    async function deleteContact(id) {
+        if(confirm('Remover contato?')) {
+            contacts = contacts.filter(c=>c.id !== id);
+            selectedContacts.delete(id);
+            saveContacts();
+            renderContacts(document.getElementById('search-contacts')?.value || '');
+            updateTotalContactsUI();
+            updateStatsUI();
+            showToast('Removido');
+        }
+    }
+    function showAddContactModal() { document.getElementById('contact-modal').classList.add('active'); document.getElementById('contact-name').value = ''; document.getElementById('contact-phone').value = ''; document.getElementById('contact-obs').value = ''; }
+    function hideAddContactModal() { document.getElementById('contact-modal').classList.remove('active'); }
+
+    // Templates e contador
+    function insertTemplate(txt) { document.getElementById('message-text').value = txt; updateCharCount(); }
+    function updateCharCount() { const len = document.getElementById('message-text').value.length; document.getElementById('char-counter').innerText = `${len} caracteres`; }
+    document.getElementById('message-text')?.addEventListener('input', updateCharCount);
+
+    // Processar mensagem individual (substituição)
+    function processMessageForContact(template, contact) {
+        return template.replace(/{nome}/g, contact.nome).replace(/{telefone}/g, contact.telefone).replace(/{observacoes}/g, contact.observacoes || '');
+    }
+
+    // ENVIO SMS NATIVO: Abre para CADA contato selecionado uma conversa nativa de SMS
+    async function sendMessagesNative() {
+        let rawMessage = document.getElementById('message-text').value;
+        if(!rawMessage.trim()) { showToast('Digite uma mensagem', 'error'); return; }
+        if(selectedContacts.size === 0) { showToast('Selecione ao menos um contato', 'error'); return; }
+
+        const selectedList = Array.from(selectedContacts).map(id => contacts.find(c => c.id === id)).filter(c => c);
+        if(selectedList.length === 0) return;
+
+        // Confirmação simples
+        if(!confirm(`Enviar SMS via app nativo para ${selectedList.length} contato(s)?\n\nCada um abrirá uma janela do SMS (você precisa clicar em enviar em cada uma).`)) return;
+
+        let enviadasRegistro = 0;
+        for(let contact of selectedList) {
+            const personalized = processMessageForContact(rawMessage, contact);
+            const phoneClean = contact.telefone.replace(/\D/g, '');
+            if(!phoneClean) continue;
+            // URI SMS nativo: sms:numero?body=texto
+            const smsUri = `sms:${phoneClean}?body=${encodeURIComponent(personalized)}`;
+            // Abrir em nova aba/janela (alguns navegadores abrem o app nativo)
+            window.open(smsUri, '_blank');
+            // pequeno delay para não flood
+            await new Promise(r => setTimeout(r, 400));
+            enviadasRegistro++;
+        }
+        // Atualizar estatísticas
+        messageStats.total_enviadas += selectedList.length;
+        saveStats();
+        updateStatsUI();
+        showToast(`📨 ${selectedList.length} SMS abertos no app nativo!`, 'success');
+    }
+
+    // JSON UPLOAD - ignorar campo "data_inicio"
+    function triggerFileUpload() { document.getElementById('json-uploader').click(); }
+    function handleJSONUpload(event) {
+        const file = event.target.files[0];
+        if(!file) return;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const jsonData = JSON.parse(e.target.result);
+                let imported = 0;
+                // suporta array de objetos ou objeto único com chave "contatos"
+                let list = Array.isArray(jsonData) ? jsonData : (jsonData.contatos ? jsonData.contatos : [jsonData]);
+                if(!Array.isArray(list)) list = [list];
+                for(let item of list) {
+                    let nome = item.nome || item.name || 'Sem nome';
+                    let telefoneRaw = item.contacto || item.telefone || item.phone || '';
+                    telefoneRaw = telefoneRaw.toString().replace(/\D/g, '');
+                    if(!telefoneRaw) continue;
+                    let obs = item.observacoes || item.obs || '';
+                    // IGNORAR data_inicio propositalmente
+                    const newId = contacts.length ? Math.max(...contacts.map(c=>c.id)) + 1 : 1;
+                    contacts.push({ id: newId, nome: nome.trim(), telefone: telefoneRaw, observacoes: obs });
+                    imported++;
+                }
+                saveContacts();
+                renderContacts(document.getElementById('search-contacts')?.value || '');
+                updateTotalContactsUI();
+                updateStatsUI();
+                showToast(`✅ Importados ${imported} contatos do JSON`, 'success');
+            } catch(err) { showToast('JSON inválido', 'error'); console.error(err); }
+            event.target.value = '';
+        };
+        reader.readAsText(file);
+    }
+
+    // Reiniciar demo com dados padrão
+    function resetDemo() {
+        if(confirm('Apagar todos os contatos e estatísticas? Dados serão perdidos.')) {
+            contacts = [
+                { id: 1, nome: "Ana Oliveira", telefone: "11988887777", observacoes: "Cliente VIP" },
+                { id: 2, nome: "Carlos Souza", telefone: "21977776666", observacoes: "Interesse em produto X" },
+                { id: 3, nome: "Mariana Lima", telefone: "31966665555", observacoes: "" }
+            ];
+            selectedContacts.clear();
+            messageStats = { total_enviadas: 0 };
+            saveContacts();
+            saveStats();
+            renderContacts('');
+            updateTotalContactsUI();
+            updateStatsUI();
+            showToast('Dados reiniciados', 'success');
+        }
+    }
+
+    function showToast(msg, type='success') {
+        const t = document.getElementById('toast');
+        t.innerText = msg;
+        t.className = `toast show ${type}`;
+        setTimeout(()=> t.classList.remove('show'), 2800);
+    }
+
+    // Inicializar
+    loadFromStorage();
+    updateCharCount();
+    window.sendMessagesNative = sendMessagesNative;
+    window.triggerFileUpload = triggerFileUpload;
+    window.handleJSONUpload = handleJSONUpload;
+    window.resetDemo = resetDemo;
+    window.showAddContactModal = showAddContactModal;
+    window.hideAddContactModal = hideAddContactModal;
+    window.addContact = addContact;
+    window.showEditContactModal = showEditContactModal;
+    window.hideEditContactModal = hideEditContactModal;
+    window.updateContact = updateContact;
+    window.deleteContact = deleteContact;
+    window.toggleContact = toggleContact;
+    window.clearSelection = clearSelection;
+    window.filterContacts = filterContacts;
+    window.insertTemplate = insertTemplate;
+    window.sendMessagesNative = sendMessagesNative;
+</script>
+</body>
+</html>
