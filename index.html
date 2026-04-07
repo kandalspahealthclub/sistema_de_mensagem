@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
-    <title>Mensageiro Pro - SMS Nativo (Realtime DB)</title>
+    <title>Mensageiro Pro - SMS Nativo (Mobile)</title>
     <script type="importmap">
         {
             "imports": {
@@ -13,115 +13,382 @@
         }
     </script>
     <style>
-        /* === TODO O SEU CSS ORIGINAL (mantido) === */
-        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        :root { --primary: #25D366; --primary-dark: #128C7E; --secondary: #34B7F1; --danger: #dc3545; --warning: #ffc107; --success: #28a745; --dark: #1f2d3d; --light: #f8f9fa; --white: #ffffff; --border: #e2e8f0; }
-        body { background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 8px; }
-        .app-container { width: 100%; max-width: 1200px; height: 96vh; background: var(--white); border-radius: 28px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.4); overflow: hidden; display: flex; flex-direction: column; }
-        .header { background: var(--primary); color: var(--white); padding: 14px 18px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
-        .header h1 { font-size: 1.35rem; font-weight: 600; }
-        .header-stats { background: rgba(255,255,255,0.2); padding: 6px 14px; border-radius: 40px; font-size: 0.8rem; }
-        .header-actions { display: flex; gap: 12px; align-items: center; }
-        .btn-logout { background: rgba(255,255,255,0.2); color: white; border: none; padding: 6px 14px; border-radius: 40px; cursor: pointer; font-size: 0.8rem; }
-        .main-content { display: flex; flex: 1; overflow: hidden; padding: 12px; gap: 12px; }
-        .contacts-panel { width: 340px; background: var(--light); border-radius: 20px; display: flex; flex-direction: column; overflow: hidden; border: 1px solid var(--border); }
-        .panel-header { padding: 14px; background: var(--white); border-bottom: 2px solid var(--primary); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; }
-        .btn-icon-group { display: flex; gap: 8px; }
-        .btn-icon { background: var(--primary); color: white; border: none; width: 38px; height: 38px; border-radius: 30px; font-size: 1.3rem; display: flex; align-items: center; justify-content: center; cursor: pointer; }
-        .btn-icon.upload { background: #2c3e66; }
-        .search-box { padding: 10px; background: white; border-bottom: 1px solid var(--border); }
-        .search-box input { width: 100%; padding: 12px 15px; border: 1px solid var(--border); border-radius: 30px; }
-        .contacts-list { flex: 1; overflow-y: auto; padding: 8px; }
-        .contact-item { background: var(--white); border-radius: 16px; padding: 12px; margin-bottom: 10px; display: flex; align-items: center; gap: 12px; cursor: pointer; border: 1px solid transparent; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
-        .contact-item.selected { background: #e8f5e9; border: 1.5px solid var(--primary); }
-        .contact-avatar { width: 48px; height: 48px; background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 1.2rem; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        :root {
+            --primary: #25D366;
+            --primary-dark: #128C7E;
+            --secondary: #34B7F1;
+            --danger: #dc3545;
+            --warning: #ffc107;
+            --success: #28a745;
+            --dark: #1e293b;
+            --light: #f1f5f9;
+            --white: #ffffff;
+            --border: #cbd5e1;
+        }
+
+        body {
+            background: var(--primary);
+            padding: 0;
+            margin: 0;
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        /* App container - sem altura fixa, scroll natural */
+        .app-container {
+            max-width: 700px;
+            margin: 0 auto;
+            background: var(--white);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        }
+
+        /* Header */
+        .header {
+            background: var(--primary);
+            color: white;
+            padding: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        .header h1 { font-size: 1.4rem; font-weight: 600; }
+        .header-stats { background: rgba(0,0,0,0.2); padding: 6px 12px; border-radius: 40px; font-size: 0.8rem; }
+        .btn-logout { background: rgba(0,0,0,0.2); border: none; color: white; padding: 6px 14px; border-radius: 40px; font-size: 0.8rem; }
+
+        /* Main content - coluna única */
+        .main-content {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            padding: 16px;
+        }
+
+        /* Painel de contactos */
+        .contacts-panel {
+            background: var(--light);
+            border-radius: 24px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+        .panel-header {
+            padding: 14px 16px;
+            background: white;
+            border-bottom: 2px solid var(--primary);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .panel-header h3 { font-size: 1.2rem; }
+        .btn-icon-group { display: flex; gap: 12px; }
+        .btn-icon {
+            background: var(--primary);
+            border: none;
+            width: 44px;
+            height: 44px;
+            border-radius: 30px;
+            font-size: 1.4rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: white;
+        }
+        .btn-icon.upload { background: #1e40af; }
+
+        .search-box { padding: 12px; background: white; border-bottom: 1px solid var(--border); }
+        .search-box input {
+            width: 100%;
+            padding: 14px 16px;
+            font-size: 1rem;
+            border: 1px solid var(--border);
+            border-radius: 50px;
+            background: var(--light);
+        }
+
+        .contacts-list {
+            max-height: 45vh;
+            overflow-y: auto;
+            padding: 8px;
+        }
+        .contact-item {
+            background: white;
+            border-radius: 20px;
+            padding: 12px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            border: 1px solid var(--border);
+            transition: 0.1s;
+        }
+        .contact-item.selected {
+            background: #e6f9ed;
+            border-color: var(--primary);
+            border-width: 2px;
+        }
+        .contact-avatar {
+            width: 52px;
+            height: 52px;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 1.3rem;
+            flex-shrink: 0;
+        }
         .contact-info { flex: 1; }
-        .contact-name { font-weight: 700; margin-bottom: 4px; }
-        .contact-phone { font-size: 0.75rem; color: #5b6e8c; }
-        .contact-obs { font-size: 0.7rem; color: #7f8c8d; font-style: italic; }
-        .contact-actions { display: flex; gap: 6px; margin-top: 6px; }
-        .btn-edit, .btn-delete { padding: 5px 12px; border: none; border-radius: 30px; font-size: 0.7rem; font-weight: 600; cursor: pointer; }
+        .contact-name { font-weight: 700; font-size: 1rem; margin-bottom: 4px; }
+        .contact-phone { font-size: 0.8rem; color: #475569; }
+        .contact-obs { font-size: 0.7rem; color: #64748b; margin-top: 4px; }
+        .contact-actions { display: flex; gap: 12px; margin-top: 8px; }
+        .btn-edit, .btn-delete {
+            padding: 6px 16px;
+            border-radius: 40px;
+            border: none;
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
         .btn-edit { background: var(--secondary); color: white; }
         .btn-delete { background: var(--danger); color: white; }
-        .contact-checkbox { width: 22px; height: 22px; accent-color: var(--primary); }
-        .message-panel { flex: 1; background: var(--light); border-radius: 20px; display: flex; flex-direction: column; overflow: hidden; border: 1px solid var(--border); }
-        .message-header { padding: 14px; background: white; border-bottom: 2px solid var(--primary); display: flex; justify-content: space-between; align-items: center; }
-        .selected-count { background: var(--primary); color: white; padding: 6px 14px; border-radius: 30px; font-size: 0.75rem; }
-        .message-composer { flex: 1; padding: 16px; display: flex; flex-direction: column; gap: 14px; }
-        .stats-panel { background: white; border-radius: 20px; padding: 12px; border-left: 4px solid var(--primary); }
-        .stats-grid { display: flex; gap: 20px; justify-content: space-around; }
-        .stat-item { text-align: center; }
-        .stat-value { font-size: 1.8rem; font-weight: 800; color: var(--primary); }
-        .template-selector { background: white; padding: 12px; border-radius: 20px; }
-        .template-buttons { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
-        .btn-template { background: #f1f5f9; border: none; padding: 8px 14px; border-radius: 40px; font-size: 0.75rem; cursor: pointer; }
-        .variables-info { background: #e6f7ff; padding: 10px; border-radius: 16px; font-size: 0.7rem; color: #0066cc; }
-        .message-input textarea { width: 100%; min-height: 130px; padding: 14px; border: 1.5px solid var(--border); border-radius: 20px; font-family: inherit; }
-        .action-buttons { display: flex; gap: 12px; margin-top: 6px; }
-        .btn { flex: 1; padding: 14px; border: none; border-radius: 60px; font-size: 1rem; font-weight: 700; cursor: pointer; text-align: center; }
+        .contact-checkbox {
+            width: 26px;
+            height: 26px;
+            accent-color: var(--primary);
+            flex-shrink: 0;
+        }
+
+        /* Painel de mensagem */
+        .message-panel {
+            background: var(--light);
+            border-radius: 24px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+        .message-header {
+            padding: 14px 16px;
+            background: white;
+            border-bottom: 2px solid var(--primary);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .selected-count {
+            background: var(--primary);
+            color: white;
+            padding: 6px 14px;
+            border-radius: 40px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        .message-composer {
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .stats-panel {
+            background: white;
+            border-radius: 20px;
+            padding: 12px;
+            text-align: center;
+        }
+        .stats-grid {
+            display: flex;
+            justify-content: space-around;
+        }
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--primary);
+        }
+        .template-selector {
+            background: white;
+            border-radius: 20px;
+            padding: 12px;
+        }
+        .template-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .btn-template {
+            background: #e2e8f0;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 40px;
+            font-size: 0.85rem;
+            cursor: pointer;
+        }
+        .variables-info {
+            background: #dbeafe;
+            padding: 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            color: #1e3a8a;
+        }
+        .message-input textarea {
+            width: 100%;
+            min-height: 140px;
+            padding: 14px;
+            font-size: 1rem;
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            font-family: inherit;
+        }
+        .action-buttons {
+            display: flex;
+            gap: 12px;
+            flex-direction: column;
+        }
+        .btn {
+            padding: 16px;
+            border: none;
+            border-radius: 60px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            cursor: pointer;
+            text-align: center;
+        }
         .btn-primary { background: var(--primary); color: white; }
         .btn-secondary { background: var(--secondary); color: white; }
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); justify-content: center; align-items: center; z-index: 1000; backdrop-filter: blur(3px); }
+
+        /* Modais */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
         .modal.active { display: flex; }
-        .modal-content { background: white; border-radius: 32px; padding: 24px; width: 90%; max-width: 420px; max-height: 80vh; overflow-y: auto; }
-        .form-group { margin-bottom: 18px; }
-        .form-group label { font-weight: 600; display: block; margin-bottom: 6px; }
-        .form-group input, .form-group textarea { width: 100%; padding: 12px; border: 1.5px solid var(--border); border-radius: 16px; }
-        .toast { position: fixed; bottom: 25px; left: 50%; transform: translateX(-50%); background: var(--dark); color: white; padding: 12px 24px; border-radius: 60px; z-index: 1100; display: none; text-align: center; }
+        .modal-content {
+            background: white;
+            border-radius: 32px;
+            padding: 24px;
+            width: 90%;
+            max-width: 450px;
+            max-height: 85vh;
+            overflow-y: auto;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            font-weight: 600;
+            display: block;
+            margin-bottom: 6px;
+        }
+        .form-group input, .form-group textarea {
+            width: 100%;
+            padding: 14px;
+            font-size: 1rem;
+            border: 1px solid var(--border);
+            border-radius: 20px;
+        }
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1e293b;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 60px;
+            font-size: 0.9rem;
+            z-index: 1100;
+            display: none;
+            text-align: center;
+            max-width: 85vw;
+        }
         .toast.show { display: block; }
         .toast.success { background: var(--success); }
         .toast.error { background: var(--danger); }
-        @media (max-width: 700px) { .main-content { flex-direction: column; } .contacts-panel { width: 100%; height: 42%; } .message-panel { height: 58%; } }
-        .empty-state { text-align: center; padding: 40px 20px; color: #94a3b8; }
-        .badge-warning { background: #ffedd5; color: #b45309; font-size: 0.7rem; padding: 5px 10px; border-radius: 30px; display: inline-block; }
+        .empty-state { text-align: center; padding: 40px; color: #64748b; }
     </style>
 </head>
 <body>
 <div class="app-container">
     <div class="header">
-        <h1>📱 Mensageiro Pro (Realtime DB - Europa)</h1>
+        <h1>📱 Mensageiro Pro</h1>
         <div class="header-actions">
             <span class="header-stats" id="total-contacts">0 contatos</span>
-            <button class="btn-logout" onclick="resetDatabase()">🔄 Resetar dados</button>
+            <button class="btn-logout" onclick="resetDatabase()">Reset</button>
         </div>
     </div>
+
     <div class="main-content">
+        <!-- Contact List -->
         <div class="contacts-panel">
             <div class="panel-header">
-                <h3>📇 Contatos (nuvem)</h3>
+                <h3>📇 Contatos</h3>
                 <div class="btn-icon-group">
                     <button class="btn-icon" onclick="showAddContactModal()">+</button>
                     <button class="btn-icon upload" onclick="triggerFileUpload()">📂</button>
                 </div>
             </div>
-            <div class="search-box"><input type="text" id="search-contacts" placeholder="🔍 Buscar..." oninput="filterContacts()"></div>
+            <div class="search-box">
+                <input type="text" id="search-contacts" placeholder="🔍 Buscar contato..." oninput="filterContacts()">
+            </div>
             <div class="contacts-list" id="contacts-list"></div>
         </div>
+
+        <!-- Message Composer -->
         <div class="message-panel">
             <div class="message-header">
-                <h3>✏️ Compor Mensagem</h3>
+                <h3>✏️ Mensagem</h3>
                 <div class="selected-count" id="selected-count">0 selecionados</div>
             </div>
             <div class="message-composer">
                 <div class="stats-panel">
                     <div class="stats-grid">
                         <div class="stat-item"><div class="stat-value" id="stat-contatos">0</div><div>Contatos</div></div>
-                        <div class="stat-item"><div class="stat-value" id="stat-mensagens">0</div><div>Mensagens</div></div>
+                        <div class="stat-item"><div class="stat-value" id="stat-mensagens">0</div><div>Enviadas</div></div>
                     </div>
                 </div>
+
                 <div class="template-selector">
                     <div>📋 Templates:</div>
                     <div class="template-buttons">
                         <button class="btn-template" onclick="insertTemplate('Olá {nome}, tudo bem?')">Saudação</button>
-                        <button class="btn-template" onclick="insertTemplate('{nome}, temos uma oferta especial!')">Promoção</button>
-                        <button class="btn-template" onclick="insertTemplate('Lembrete: {nome}, confirme sua presença.')">Lembrete</button>
+                        <button class="btn-template" onclick="insertTemplate('{nome}, temos uma oferta!')">Promoção</button>
+                        <button class="btn-template" onclick="insertTemplate('Lembrete: {nome} amanhã.')">Lembrete</button>
                     </div>
                 </div>
-                <div class="variables-info">💡 Use {nome}, {telefone}, {observacoes}<br>⚠️ Cada contato abrirá uma conversa nativa de SMS.</div>
+
+                <div class="variables-info">
+                    💡 Use <code>{nome}</code>, <code>{telefone}</code>, <code>{observacoes}</code><br>
+                    📲 Cada contato abrirá o SMS nativo (você clica em enviar).
+                </div>
+
                 <div class="message-input">
                     <textarea id="message-text" placeholder="Digite sua mensagem..."></textarea>
                     <div class="char-counter" id="char-counter">0 caracteres</div>
                 </div>
+
                 <div class="action-buttons">
                     <button class="btn btn-primary" onclick="sendMessagesNative()">📤 Enviar SMS (Nativo)</button>
                     <button class="btn btn-secondary" onclick="clearSelection()">🔄 Limpar Seleção</button>
@@ -133,17 +400,18 @@
 
 <!-- Modais -->
 <div class="modal" id="contact-modal"><div class="modal-content"><div class="modal-header"><h3>➕ Novo Contato</h3><span class="modal-close" onclick="hideAddContactModal()">&times;</span></div>
-    <div class="form-group"><label>Nome</label><input type="text" id="contact-name"></div>
-    <div class="form-group"><label>Telefone (com DDD)</label><input type="tel" id="contact-phone"></div>
-    <div class="form-group"><label>Observações</label><textarea id="contact-obs"></textarea></div>
-    <div style="display:flex; gap:10px"><button class="btn btn-primary" onclick="addContact()">Salvar</button><button class="btn btn-secondary" onclick="hideAddContactModal()">Cancelar</button></div>
+    <div class="form-group"><label>Nome</label><input type="text" id="contact-name" placeholder="Ex: Ana"></div>
+    <div class="form-group"><label>Telefone (com DDD)</label><input type="tel" id="contact-phone" placeholder="11999999999"></div>
+    <div class="form-group"><label>Observações</label><textarea id="contact-obs" placeholder="Opcional"></textarea></div>
+    <div style="display:flex; gap:12px"><button class="btn btn-primary" onclick="addContact()">Salvar</button><button class="btn btn-secondary" onclick="hideAddContactModal()">Cancelar</button></div>
 </div></div>
 
 <div class="modal" id="edit-contact-modal"><div class="modal-content"><div class="modal-header"><h3>✏️ Editar Contato</h3><span class="modal-close" onclick="hideEditContactModal()">&times;</span></div>
-    <input type="hidden" id="edit-contact-id"><div class="form-group"><label>Nome</label><input type="text" id="edit-contact-name"></div>
+    <input type="hidden" id="edit-contact-id">
+    <div class="form-group"><label>Nome</label><input type="text" id="edit-contact-name"></div>
     <div class="form-group"><label>Telefone</label><input type="tel" id="edit-contact-phone"></div>
     <div class="form-group"><label>Observações</label><textarea id="edit-contact-obs"></textarea></div>
-    <div style="display:flex; gap:10px"><button class="btn btn-primary" onclick="updateContact()">Atualizar</button><button class="btn btn-secondary" onclick="hideEditContactModal()">Cancelar</button></div>
+    <div style="display:flex; gap:12px"><button class="btn btn-primary" onclick="updateContact()">Atualizar</button><button class="btn btn-secondary" onclick="hideEditContactModal()">Cancelar</button></div>
 </div></div>
 
 <div class="toast" id="toast"></div>
@@ -153,7 +421,6 @@
     import { initializeApp } from "firebase/app";
     import { getDatabase, ref, onValue, push, set, remove, update } from "firebase/database";
 
-    // Configuração do Firebase com a região correta (europe-west1)
     const firebaseConfig = {
         apiKey: "AIzaSyC2i4vZy7ViNyQAM6Fug6uxV42yWICco80",
         authDomain: "mensageiro-pro-c8f1f.firebaseapp.com",
@@ -161,13 +428,12 @@
         storageBucket: "mensageiro-pro-c8f1f.firebasestorage.app",
         messagingSenderId: "512429988910",
         appId: "1:512429988910:web:d2e1015e39beafe32753bf",
-        measurementId: "G-J1LMH602PG",
         databaseURL: "https://mensageiro-pro-c8f1f-default-rtdb.europe-west1.firebasedatabase.app/"
     };
 
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
-    console.log("Firebase Realtime Database inicializado (região europe-west1)");
+    console.log("Firebase OK (mobile edition)");
 
     let contacts = [];
     let selectedContacts = new Set();
@@ -176,47 +442,35 @@
     const contactsRef = ref(db, 'contatos');
     const statsRef = ref(db, 'estatisticas/total_mensagens');
 
-    // Listener para contactos
     onValue(contactsRef, (snapshot) => {
         const data = snapshot.val();
         contacts = [];
-        if (data) {
+        if(data) {
             Object.keys(data).forEach(key => {
-                contacts.push({
-                    id: key,
-                    nome: data[key].nome || '',
-                    telefone: data[key].telefone || '',
-                    observacoes: data[key].observacoes || ''
-                });
+                contacts.push({ id: key, ...data[key] });
             });
         }
-        contacts.sort((a,b) => a.nome.localeCompare(b.nome));
+        contacts.sort((a,b) => (a.nome || '').localeCompare(b.nome || ''));
         renderContacts(document.getElementById('search-contacts')?.value || '');
         updateTotalContactsUI();
         updateStatsUI();
-        const existingIds = new Set(contacts.map(c => c.id));
-        for(let id of selectedContacts) {
-            if(!existingIds.has(id)) selectedContacts.delete(id);
-        }
+        const existing = new Set(contacts.map(c => c.id));
+        for(let id of selectedContacts) if(!existing.has(id)) selectedContacts.delete(id);
         updateSelectedCountUI();
-    }, (error) => {
-        console.error("Erro no listener:", error);
-        showToast("Erro ao carregar contactos: " + error.message, "error");
     });
 
-    onValue(statsRef, (snapshot) => {
-        totalMessages = snapshot.val() || 0;
+    onValue(statsRef, (snap) => {
+        totalMessages = snap.val() || 0;
         document.getElementById('stat-mensagens').innerText = totalMessages;
     });
 
-    // Funções auxiliares
-    function renderContacts(filterText = '') {
+    // Funções de UI (versão mobile com toque)
+    function renderContacts(filter = '') {
         const container = document.getElementById('contacts-list');
         if(!container) return;
         const filtered = contacts.filter(c => 
-            c.nome.toLowerCase().includes(filterText.toLowerCase()) || 
-            c.telefone.includes(filterText) ||
-            (c.observacoes && c.observacoes.toLowerCase().includes(filterText.toLowerCase()))
+            (c.nome || '').toLowerCase().includes(filter.toLowerCase()) ||
+            (c.telefone || '').includes(filter)
         );
         if(filtered.length === 0) {
             container.innerHTML = '<div class="empty-state"><i>📭</i><p>Nenhum contato</p></div>';
@@ -228,14 +482,14 @@
             const div = document.createElement('div');
             div.className = `contact-item ${isSelected ? 'selected' : ''}`;
             div.innerHTML = `
-                <div class="contact-avatar" data-id="${contact.id}">${escapeHtml(contact.nome.charAt(0))}</div>
+                <div class="contact-avatar" data-id="${contact.id}">${(contact.nome?.charAt(0) || '?')}</div>
                 <div class="contact-info" data-id="${contact.id}">
-                    <div class="contact-name">${escapeHtml(contact.nome)} ${contact.observacoes ? '📌' : ''}</div>
-                    <div class="contact-phone">📱 ${formatPhone(contact.telefone)}</div>
-                    ${contact.observacoes ? `<div class="contact-obs">📝 ${escapeHtml(contact.observacoes)}</div>` : ''}
+                    <div class="contact-name">${escapeHtml(contact.nome || '')}</div>
+                    <div class="contact-phone">📱 ${formatPhone(contact.telefone || '')}</div>
+                    ${contact.observacoes ? `<div class="contact-obs">${escapeHtml(contact.observacoes)}</div>` : ''}
                     <div class="contact-actions">
-                        <button class="btn-edit" data-id="${contact.id}">✏️ Editar</button>
-                        <button class="btn-delete" data-id="${contact.id}">🗑️ Remover</button>
+                        <button class="btn-edit" data-id="${contact.id}">Editar</button>
+                        <button class="btn-delete" data-id="${contact.id}">Remover</button>
                     </div>
                 </div>
                 <input type="checkbox" class="contact-checkbox" data-id="${contact.id}" ${isSelected ? 'checked' : ''}>
@@ -255,40 +509,13 @@
         else selectedContacts.add(id);
         renderContacts(document.getElementById('search-contacts')?.value || '');
     }
-
-    function clearSelection() {
-        selectedContacts.clear();
-        renderContacts(document.getElementById('search-contacts')?.value || '');
-        showToast('Seleção limpa');
-    }
-
-    function updateSelectedCountUI() {
-        const count = selectedContacts.size;
-        document.getElementById('selected-count').innerText = count === 0 ? '0 selecionados' : `${count} selecionado${count !== 1 ? 's' : ''}`;
-    }
-
+    function clearSelection() { selectedContacts.clear(); renderContacts(document.getElementById('search-contacts')?.value || ''); showToast('Seleção limpa'); }
+    function updateSelectedCountUI() { document.getElementById('selected-count').innerText = selectedContacts.size === 0 ? '0 selecionados' : `${selectedContacts.size} selecionado${selectedContacts.size !== 1 ? 's' : ''}`; }
     function filterContacts() { renderContacts(document.getElementById('search-contacts').value); }
-
-    function formatPhone(p) {
-        let s = p.replace(/\D/g,'');
-        if(s.length===11) return `(${s.slice(0,2)}) ${s.slice(2,7)}-${s.slice(7)}`;
-        if(s.length===10) return `(${s.slice(0,2)}) ${s.slice(2,6)}-${s.slice(6)}`;
-        return p;
-    }
-
-    function escapeHtml(str) { return str.replace(/[&<>]/g, function(m){ if(m==='&') return '&amp;'; if(m==='<') return '&lt;'; if(m==='>') return '&gt;'; return m;}); }
-
-    function showToast(msg, type='success') {
-        const t = document.getElementById('toast');
-        t.innerText = msg;
-        t.className = `toast show ${type}`;
-        setTimeout(()=> t.classList.remove('show'), 2800);
-    }
-
-    function updateTotalContactsUI() {
-        document.getElementById('total-contacts').innerText = `${contacts.length} contato${contacts.length !== 1 ? 's' : ''}`;
-        document.getElementById('stat-contatos').innerText = contacts.length;
-    }
+    function formatPhone(p) { let s = p.replace(/\D/g,''); if(s.length===11) return `(${s.slice(0,2)}) ${s.slice(2,7)}-${s.slice(7)}`; if(s.length===10) return `(${s.slice(0,2)}) ${s.slice(2,6)}-${s.slice(6)}`; return p; }
+    function escapeHtml(str) { return str.replace(/[&<>]/g, (m) => ({'&':'&amp;','<':'&lt;','>':'&gt;'})[m]); }
+    function showToast(msg, type='success') { const t = document.getElementById('toast'); t.innerText = msg; t.className = `toast show ${type}`; setTimeout(()=> t.classList.remove('show'), 3000); }
+    function updateTotalContactsUI() { document.getElementById('total-contacts').innerText = `${contacts.length} contato${contacts.length !== 1 ? 's' : ''}`; document.getElementById('stat-contatos').innerText = contacts.length; }
     function updateStatsUI() { document.getElementById('stat-contatos').innerText = contacts.length; }
 
     // CRUD
@@ -298,16 +525,14 @@
         const obs = document.getElementById('contact-obs').value.trim();
         if(!nome || !telefone) { showToast('Nome e telefone obrigatórios', 'error'); return; }
         try {
-            const newContactRef = push(contactsRef);
-            await set(newContactRef, { nome, telefone, observacoes: obs || "" });
+            await set(push(contactsRef), { nome, telefone, observacoes: obs });
             hideAddContactModal();
             showToast('✅ Contato adicionado');
             document.getElementById('contact-name').value = '';
             document.getElementById('contact-phone').value = '';
             document.getElementById('contact-obs').value = '';
-        } catch(e) { showToast('Erro ao adicionar: ' + e.message, 'error'); }
+        } catch(e) { showToast('Erro: ' + e.message, 'error'); }
     }
-
     async function updateContact() {
         const id = document.getElementById('edit-contact-id').value;
         const nome = document.getElementById('edit-contact-name').value.trim();
@@ -315,101 +540,81 @@
         const obs = document.getElementById('edit-contact-obs').value.trim();
         if(!nome || !telefone) { showToast('Nome e telefone obrigatórios', 'error'); return; }
         try {
-            const contactRef = ref(db, `contatos/${id}`);
-            await update(contactRef, { nome, telefone, observacoes: obs || "" });
+            await update(ref(db, `contatos/${id}`), { nome, telefone, observacoes: obs });
             hideEditContactModal();
             showToast('Atualizado');
-        } catch(e) { showToast('Erro ao atualizar: ' + e.message, 'error'); }
+        } catch(e) { showToast('Erro: ' + e.message, 'error'); }
     }
-
     async function deleteContact(id) {
-        if(!confirm('Remover contato permanentemente?')) return;
+        if(!confirm('Remover contato?')) return;
         try {
-            const contactRef = ref(db, `contatos/${id}`);
-            await remove(contactRef);
+            await remove(ref(db, `contatos/${id}`));
             selectedContacts.delete(id);
             showToast('Removido');
-        } catch(e) { showToast('Erro ao remover: ' + e.message, 'error'); }
+        } catch(e) { showToast('Erro: ' + e.message, 'error'); }
     }
-
-    async function incrementMessagesSent(amount) {
-        const current = totalMessages;
-        await set(statsRef, current + amount);
-    }
-
+    async function incrementMessagesSent(amount) { await set(statsRef, totalMessages + amount); }
     async function resetDatabase() {
-        if(!confirm('⚠️ Isso vai APAGAR TODOS OS CONTATOS e estatísticas na nuvem. Continuar?')) return;
+        if(!confirm('Apagar TODOS os contatos e estatísticas?')) return;
         try {
             await set(contactsRef, null);
             await set(statsRef, 0);
             selectedContacts.clear();
-            showToast('Dados reiniciados na nuvem');
-        } catch(e) { showToast('Erro ao resetar: ' + e.message, 'error'); }
+            showToast('Dados reiniciados');
+        } catch(e) { showToast('Erro: ' + e.message, 'error'); }
     }
-
-    // Importar JSON
     async function handleJSONUpload(event) {
         const file = event.target.files[0];
         if(!file) return;
         const reader = new FileReader();
-        reader.onload = async function(e) {
+        reader.onload = async (e) => {
             try {
-                const jsonData = JSON.parse(e.target.result);
-                let list = Array.isArray(jsonData) ? jsonData : (jsonData.contatos ? jsonData.contatos : [jsonData]);
-                if(!Array.isArray(list)) list = [list];
+                const json = JSON.parse(e.target.result);
+                let list = Array.isArray(json) ? json : (json.contatos ? json.contatos : [json]);
                 let imported = 0;
                 for(let item of list) {
                     let nome = item.nome || item.name || 'Sem nome';
-                    let telefoneRaw = item.contacto || item.telefone || item.phone || '';
-                    telefoneRaw = telefoneRaw.toString().replace(/\D/g, '');
-                    if(!telefoneRaw) continue;
+                    let telefone = (item.contacto || item.telefone || item.phone || '').toString().replace(/\D/g,'');
+                    if(!telefone) continue;
                     let obs = item.observacoes || item.obs || '';
-                    const newRef = push(contactsRef);
-                    await set(newRef, { nome: nome.trim(), telefone: telefoneRaw, observacoes: obs });
+                    await set(push(contactsRef), { nome, telefone, observacoes: obs });
                     imported++;
                 }
-                showToast(`✅ Importados ${imported} contatos`, 'success');
+                showToast(`✅ ${imported} contatos importados`);
             } catch(err) { showToast('JSON inválido', 'error'); }
             event.target.value = '';
         };
         reader.readAsText(file);
     }
 
-    // Templates e envio SMS
-    function insertTemplate(txt) {
-        document.getElementById('message-text').value = txt;
-        updateCharCount();
-    }
-    function updateCharCount() {
-        const len = document.getElementById('message-text').value.length;
-        document.getElementById('char-counter').innerText = `${len} caracteres`;
-    }
-    document.getElementById('message-text')?.addEventListener('input', updateCharCount);
+    function insertTemplate(txt) { document.getElementById('message-text').value = txt; updateCharCount(); }
+    function updateCharCount() { const len = document.getElementById('message-text').value.length; document.getElementById('char-counter').innerText = `${len} caracteres`; }
+    document.getElementById('message-text').addEventListener('input', updateCharCount);
 
     function processMessageForContact(template, contact) {
-        return template.replace(/{nome}/g, contact.nome).replace(/{telefone}/g, contact.telefone).replace(/{observacoes}/g, contact.observacoes || '');
+        return template.replace(/{nome}/g, contact.nome || '')
+                      .replace(/{telefone}/g, contact.telefone || '')
+                      .replace(/{observacoes}/g, contact.observacoes || '');
     }
-
     async function sendMessagesNative() {
-        let rawMessage = document.getElementById('message-text').value;
-        if(!rawMessage.trim()) { showToast('Digite uma mensagem', 'error'); return; }
+        const msg = document.getElementById('message-text').value;
+        if(!msg.trim()) { showToast('Digite uma mensagem', 'error'); return; }
         if(selectedContacts.size === 0) { showToast('Selecione contatos', 'error'); return; }
-        const selectedList = Array.from(selectedContacts).map(id => contacts.find(c => c.id === id)).filter(c => c);
-        if(!confirm(`Enviar SMS nativo para ${selectedList.length} contato(s)? Cada um abrirá uma janela.`)) return;
+        const list = Array.from(selectedContacts).map(id => contacts.find(c => c.id === id)).filter(c => c);
+        if(!confirm(`Enviar SMS para ${list.length} contato(s)?`)) return;
         let count = 0;
-        for(let contact of selectedList) {
-            const personalized = processMessageForContact(rawMessage, contact);
-            const phoneClean = contact.telefone.replace(/\D/g, '');
-            if(phoneClean) {
-                window.open(`sms:${phoneClean}?body=${encodeURIComponent(personalized)}`, '_blank');
+        for(let contact of list) {
+            const personalized = processMessageForContact(msg, contact);
+            const phone = contact.telefone.replace(/\D/g,'');
+            if(phone) {
+                window.open(`sms:${phone}?body=${encodeURIComponent(personalized)}`, '_blank');
                 await new Promise(r => setTimeout(r, 400));
                 count++;
             }
         }
         await incrementMessagesSent(count);
-        showToast(`📨 ${count} SMS abertos no app nativo`, 'success');
+        showToast(`📨 ${count} SMS abertos`);
     }
-
     function triggerFileUpload() { document.getElementById('json-uploader').click(); }
 
     // Modais
@@ -419,15 +624,15 @@
         const c = contacts.find(c => c.id === id);
         if(c) {
             document.getElementById('edit-contact-id').value = id;
-            document.getElementById('edit-contact-name').value = c.nome;
-            document.getElementById('edit-contact-phone').value = c.telefone;
+            document.getElementById('edit-contact-name').value = c.nome || '';
+            document.getElementById('edit-contact-phone').value = c.telefone || '';
             document.getElementById('edit-contact-obs').value = c.observacoes || '';
             document.getElementById('edit-contact-modal').classList.add('active');
         }
     }
     function hideEditContactModal() { document.getElementById('edit-contact-modal').classList.remove('active'); }
 
-    // Expor globalmente
+    // Globals
     window.addContact = addContact;
     window.updateContact = updateContact;
     window.deleteContact = deleteContact;
