@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
     <title>Mensageiro Pro - SMS Nativo (Realtime DB)</title>
-    <!-- Firebase SDKs (modular) -->
     <script type="importmap">
         {
             "imports": {
@@ -80,7 +79,7 @@
 <body>
 <div class="app-container">
     <div class="header">
-        <h1>📱 Mensageiro Pro (Realtime DB)</h1>
+        <h1>📱 Mensageiro Pro (Realtime DB - Europa)</h1>
         <div class="header-actions">
             <span class="header-stats" id="total-contacts">0 contatos</span>
             <button class="btn-logout" onclick="resetDatabase()">🔄 Resetar dados</button>
@@ -154,7 +153,7 @@
     import { initializeApp } from "firebase/app";
     import { getDatabase, ref, onValue, push, set, remove, update } from "firebase/database";
 
-    // Configuração do Firebase (igual à sua)
+    // Configuração do Firebase com a região correta (europe-west1)
     const firebaseConfig = {
         apiKey: "AIzaSyC2i4vZy7ViNyQAM6Fug6uxV42yWICco80",
         authDomain: "mensageiro-pro-c8f1f.firebaseapp.com",
@@ -163,22 +162,21 @@
         messagingSenderId: "512429988910",
         appId: "1:512429988910:web:d2e1015e39beafe32753bf",
         measurementId: "G-J1LMH602PG",
-        databaseURL: "https://mensageiro-pro-c8f1f-default-rtdb.firebaseio.com/"  // URL do Realtime Database
+        databaseURL: "https://mensageiro-pro-c8f1f-default-rtdb.europe-west1.firebasedatabase.app/"
     };
 
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
-    console.log("Firebase Realtime Database inicializado");
+    console.log("Firebase Realtime Database inicializado (região europe-west1)");
 
-    let contacts = [];           // array local com { id, nome, telefone, observacoes }
+    let contacts = [];
     let selectedContacts = new Set();
     let totalMessages = 0;
 
-    // Referências no Realtime Database
     const contactsRef = ref(db, 'contatos');
     const statsRef = ref(db, 'estatisticas/total_mensagens');
 
-    // --- Listener em tempo real para contactos ---
+    // Listener para contactos
     onValue(contactsRef, (snapshot) => {
         const data = snapshot.val();
         contacts = [];
@@ -192,12 +190,10 @@
                 });
             });
         }
-        // Ordenar por nome
         contacts.sort((a,b) => a.nome.localeCompare(b.nome));
         renderContacts(document.getElementById('search-contacts')?.value || '');
         updateTotalContactsUI();
         updateStatsUI();
-        // Limpar seleções que já não existem
         const existingIds = new Set(contacts.map(c => c.id));
         for(let id of selectedContacts) {
             if(!existingIds.has(id)) selectedContacts.delete(id);
@@ -208,13 +204,12 @@
         showToast("Erro ao carregar contactos: " + error.message, "error");
     });
 
-    // --- Estatísticas: total de mensagens enviadas ---
     onValue(statsRef, (snapshot) => {
         totalMessages = snapshot.val() || 0;
         document.getElementById('stat-mensagens').innerText = totalMessages;
     });
 
-    // --- Funções auxiliares ---
+    // Funções auxiliares
     function renderContacts(filterText = '') {
         const container = document.getElementById('contacts-list');
         if(!container) return;
@@ -296,7 +291,7 @@
     }
     function updateStatsUI() { document.getElementById('stat-contatos').innerText = contacts.length; }
 
-    // --- CRUD com Realtime Database ---
+    // CRUD
     async function addContact() {
         const nome = document.getElementById('contact-name').value.trim();
         let telefone = document.getElementById('contact-phone').value.trim().replace(/\D/g,'');
@@ -304,11 +299,7 @@
         if(!nome || !telefone) { showToast('Nome e telefone obrigatórios', 'error'); return; }
         try {
             const newContactRef = push(contactsRef);
-            await set(newContactRef, {
-                nome: nome,
-                telefone: telefone,
-                observacoes: obs || ""
-            });
+            await set(newContactRef, { nome, telefone, observacoes: obs || "" });
             hideAddContactModal();
             showToast('✅ Contato adicionado');
             document.getElementById('contact-name').value = '';
@@ -356,7 +347,7 @@
         } catch(e) { showToast('Erro ao resetar: ' + e.message, 'error'); }
     }
 
-    // --- Importar JSON ignorando "data_inicio" ---
+    // Importar JSON
     async function handleJSONUpload(event) {
         const file = event.target.files[0];
         if(!file) return;
@@ -384,7 +375,7 @@
         reader.readAsText(file);
     }
 
-    // --- Templates e envio SMS ---
+    // Templates e envio SMS
     function insertTemplate(txt) {
         document.getElementById('message-text').value = txt;
         updateCharCount();
@@ -421,7 +412,7 @@
 
     function triggerFileUpload() { document.getElementById('json-uploader').click(); }
 
-    // --- Modais ---
+    // Modais
     function showAddContactModal() { document.getElementById('contact-modal').classList.add('active'); }
     function hideAddContactModal() { document.getElementById('contact-modal').classList.remove('active'); }
     function showEditContactModal(id) {
@@ -436,7 +427,7 @@
     }
     function hideEditContactModal() { document.getElementById('edit-contact-modal').classList.remove('active'); }
 
-    // Expor funções globalmente (para os botões inline)
+    // Expor globalmente
     window.addContact = addContact;
     window.updateContact = updateContact;
     window.deleteContact = deleteContact;
